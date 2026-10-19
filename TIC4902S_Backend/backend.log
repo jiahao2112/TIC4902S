@@ -1,0 +1,13 @@
+2026-10-14 17:23:39,777  - INFO - AIService starting
+2026-10-14 17:23:39,802  - INFO - AIService started
+2026-10-14 17:23:53,179  - INFO - Routing to url: http://localhost:8001/generate
+2026-10-14 17:23:54,373  - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-14 17:23:54,387  - INFO - Plan generated successfully from Groq
+2026-10-14 17:23:54,387  - INFO - Plan generated is of correct structure
+2026-10-14 17:23:54,389  - INFO - HTTP Request: POST http://localhost:8001/generate "HTTP/1.1 200 OK"
+2026-10-14 17:24:00,700  - INFO - Routing to url: http://localhost:8001/generate
+2026-10-14 17:24:00,969  - ERROR - Validation failed: Field required at 'body.messages.0.content.list[QuizRequest].0.day' | Input: {'country': 'singapore'}
+2026-10-14 17:24:01,004  - ERROR - Validation failed: Input should be a valid string at 'body.messages.0.content.str' | Input: [{'country': 'singapore'}]
+2026-10-14 17:24:01,009  - INFO - HTTP Request: POST http://localhost:8001/generate "HTTP/1.1 422 Unprocessable Content"
+2026-10-14 17:24:04,201  - INFO - AIService stopping
+2026-10-14 17:24:04,201  - INFO - AIService stopped
