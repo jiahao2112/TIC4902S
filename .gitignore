@@ -1,6 +1,10 @@
-.env/
+env/
 __pycache__/
 *.py[cod]
 .env
 .pytest_cache/
 .DS_Store
+*.log
+htmlcov/
+.coverage
+report.html

@@ -1,23 +1,23 @@
-from typing import Literal, List, Union
+from typing import Literal, List, Union, Annotated
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints, PositiveInt
 
+RequiredStr = Annotated[str,StringConstraints(min_length=1, strip_whitespace=True)]
 
 class FieldType(BaseModel):
     type: str
 
-
 class QuizRequest(BaseModel):
-    country: str
-    day: int
+    country: RequiredStr
+    days: PositiveInt
 
 class JsonContent(BaseModel):
     type: str = "json"
     json_: QuizRequest = Field(alias="json")
 
 class GeneratedLocation(BaseModel):
-    destination: str
+    destination: RequiredStr
     longitude: float
     latitude: float
 
@@ -33,7 +33,7 @@ class LocationFormat(BaseModel):
 class ItemFormat(BaseModel):
     type: str = "object"
     properties: LocationFormat = LocationFormat()
-    required: list[str] = list(LocationFormat.model_fields.keys())
+    required: List[str] = Field(default_factory=lambda: list(LocationFormat.model_fields.keys()))
     additionalProperties: bool = False
 
 class ItemsFormat(BaseModel):
@@ -47,7 +47,7 @@ class Schema(BaseModel):
     type: str = "object"
     properties: PlanFormat = PlanFormat()
     additionalProperties: bool = False
-    required: list[str] = list(PlanFormat.model_fields.keys())
+    required: List[str] = Field(default_factory=lambda: list(PlanFormat.model_fields.keys()))
 
 
 class JsonSchema(BaseModel):
@@ -55,23 +55,18 @@ class JsonSchema(BaseModel):
     strict: bool = True
     schema_def: Schema = Field(default=Schema(), alias="schema")
 
-class ChatMessage(BaseModel):
-    role: Literal["system", "user", "assistant"]
-    content: Union[List[QuizRequest], str]
+class UserMessage(BaseModel):
+    role: Literal["user"] = "user"
+    content: List[QuizRequest]
 
-class SetupMessage(ChatMessage):
-    role: str = "system"
-    content: str = (
-        "You are a helpful travel assistant. You will receive quiz-style input in JSON format (e.g. {\"country\": \"singapore\",\"day\":2}). Interpret this JSON as the user's request. Always respond ONLY with valid JSON that matches the schema below. For each day specified in the input, output exactly one destination object. If \"day\": 1, return 1 destination. If \"day\": 2, return 2 destination, etc.  Do not include any extra text, explanations, or formatting."
-    )
+class SystemMessage(BaseModel):
+    role: Literal["system"] = "system"
+    content: RequiredStr = "You are a helpful travel assistant. You will receive quiz-style input in JSON format (e.g. {\"country\": \"singapore\",\"day\":2}). Interpret this JSON as the user's request. Always respond ONLY with valid JSON that matches the schema below. For each day specified in the input, output exactly one destination object. If \"day\": 1, return 1 destination. If \"day\": 2, return 2 destination, etc.  Do not include any extra text, explanations, or formatting."
 
-
-
-
+ChatMessage = Union[UserMessage, SystemMessage]
 
 class ChatResponse(BaseModel):
     content: List[GeneratedLocation]
-
 
 class ChatResponseFormat(BaseModel):
     type: str = "json_schema"

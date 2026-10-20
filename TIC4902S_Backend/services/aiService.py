@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException, Request
 from typing import Optional
 from groq import APIConnectionError, APIStatusError, AsyncGroq, RateLimitError
-from schemas.aiSchemas import ChatRequest, ChatResponse, SetupMessage, GeneratedPlan
+from schemas.aiSchemas import ChatRequest, ChatResponse, SystemMessage, GeneratedPlan, UserMessage, QuizRequest
 from collections.abc import AsyncIterator
 from settings.aiConfig import GROQ_API_KEY
 import json
 from logger import logger
-from fastapi.exceptions import RequestValidationError, ValidationException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.groq_client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
@@ -26,20 +27,29 @@ async def health():
 
 @aiService.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
-    body = await request.body()
+    # body = await request.body()
+    errors = []
     for error in exc.errors():
         field_path = ".".join(str(x) for x in error["loc"])
-        logger.error(f"Validation failed: {error['msg']} at '{field_path}' | Input: {error.get('input')}")
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+        message = f"Validation failed: {error['msg']} at '{field_path}' | Input: {error.get('input')}"
+        logger.error(message)
+        errors.append(message)
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
-@aiService.exception_handler(ValidationException)
-async def validationExceptionLogger(request: Request, exc: ValidationException):
-    logger.error(f"Pydantic model validation failed: {exc.errors()}")
+@aiService.exception_handler(ValidationError)
+async def validationExceptionLogger(request: Request, exc: ValidationError):
+    errors = []
+    for error in exc.errors():
+        field_path = ".".join(str(x) for x in error["loc"])
+        message = f"Validation failed: {error['msg']} at '{field_path}' | Input: {error.get('input')}"
+        logger.error(message)
+        errors.append(message)
+    return JSONResponse(status_code=422, content={"detail": message})
 
 
 @aiService.post("/generate")
-async def generate(generateRequest: ChatRequest, request: Request) -> ChatResponse:
+async def generate(userMessage: UserMessage, request: Request) -> ChatResponse:
     client: Optional[AsyncGroq] = request.app.state.groq_client
     if client is None:
         logger.warning("Groq is not configured. Set GROQ_API_KEY in your .env file.")
@@ -48,11 +58,12 @@ async def generate(generateRequest: ChatRequest, request: Request) -> ChatRespon
             detail="Groq is not configured. Set GROQ_API_KEY in your .env file.",
         )
     try:
-        setupMessage=SetupMessage()
+        generateRequest = ChatRequest(messages=[userMessage])
+        setupMessage=SystemMessage()
         generateRequest.messages.insert(0,setupMessage)
         messages = []
         for message in generateRequest.messages:
-            if isinstance(message.content, list):
+            if isinstance(message, UserMessage):
                 # Convert each content item into a JSON string
                 converted_content = [c.model_dump_json() for c in message.content]
                 # Join them into one string (API requires content to be a string)
@@ -92,14 +103,9 @@ async def generate(generateRequest: ChatRequest, request: Request) -> ChatRespon
         ) from exc
 
     content = completion.choices[0].message.content or None
-
-    try:
     # Try to parse the JSON string into a dict
-        parsed = json.loads(content)
-        # Validate against your Pydantic model
-        plan = GeneratedPlan.model_validate(parsed)
-        logger.info("Plan generated is of correct structure")
-        return ChatResponse(content=plan.destinations)
-    except Exception as e:
-        logger.error(e)
-        return ChatResponse(content=content, model=completion.model)
+    parsed = json.loads(content)
+    # Validate against your Pydantic model
+    plan = GeneratedPlan.model_validate(parsed)
+    logger.info("Plan generated is of correct structure")
+    return ChatResponse(content=plan.destinations)
