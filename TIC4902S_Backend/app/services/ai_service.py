@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException, Request
 from typing import Optional
 from groq import APIConnectionError, APIStatusError, AsyncGroq, RateLimitError
-from schemas.aiSchemas import ChatRequest, ChatResponse, SetupMessage, GeneratedPlan
+from app.schemas.ai import ChatRequest, ChatResponse, SetupMessage, GeneratedPlan
 from collections.abc import AsyncIterator
-from settings.aiConfig import GROQ_API_KEY
+from app.core.ai_config import GROQ_API_KEY
 import json
-from logger import logger
+from app.core.logger import logger
 from fastapi.exceptions import RequestValidationError, ValidationException
 from fastapi.responses import JSONResponse
 

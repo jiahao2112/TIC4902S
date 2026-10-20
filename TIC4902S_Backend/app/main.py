@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
-from serviceManager import ServiceManager
+from app.core.service_manager import ServiceManager
 import httpx
-from logger import logger
+from app.core.logger import logger
 
 serviceManager = ServiceManager()
 

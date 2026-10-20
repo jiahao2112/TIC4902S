@@ -1,7 +1,7 @@
 import subprocess
 import sys
-from config import SERVICES
-from logger import logger
+from app.core.config import SERVICES
+from app.core.logger import logger
 
 class ServiceManager():
     def __init__(self):
