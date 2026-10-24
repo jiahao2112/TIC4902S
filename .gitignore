@@ -1,4 +1,4 @@
-.env/
+env/
 __pycache__/
 *.py[cod]
 .env
@@ -7,3 +7,6 @@ __pycache__/
 logs/
 *.log
 .venv/
+htmlcov/
+.coverage
+report.html
